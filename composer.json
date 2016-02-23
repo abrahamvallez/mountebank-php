@@ -1,5 +1,5 @@
 {
-  "name": "abraham.vallez/mountebank-wrapper-php",
+  "name": "abevallez/mountebank-php",
   "description": "A wrapper to set mountebank in php",
   "version": "0.1.1",
   "require": {
@@ -11,7 +11,7 @@
   "authors": [
     {
       "name": "Abraham Vallez",
-      "email": "abraham.vallez@engrande.com"
+      "email": "abraham.vallez@gmail.com"
     }
   ],
   "autoload": {
