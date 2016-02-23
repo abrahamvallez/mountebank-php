@@ -1,4 +1,4 @@
 # mountebank-php
-Mountebank wrapper in php
+Wrapper to set mountebank in php
 
 
