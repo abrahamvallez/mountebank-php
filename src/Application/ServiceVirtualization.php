@@ -35,6 +35,9 @@ class ServiceVirtualization
      */
     protected $httpClient;
 
+    /**
+     * @var ImposterFormatter
+     */
     protected $imposterFormatter;
 
     /**
@@ -45,7 +48,7 @@ class ServiceVirtualization
     public function __construct(HttpClientInterface $httpClient)
     {
         $this->httpClient = $httpClient;
-        $this->imposterFormatter = new ImposterFormatter();
+        $this->imposterFormatter = $this->getImposterFormatter();
     }
 
     /**
@@ -82,9 +85,11 @@ class ServiceVirtualization
     public function setImposterInService(Imposter $imposter)
     {
         $postOptions = [
+            'headers' => [self::CONTENT_TYPE],
             'body' => $this->imposterFormatter->getJsonImposter($imposter)
         ];
-        $this->httpClient->post($this->serviceHost, $postOptions);
+        $urlSetImposter = $this->serviceHost . self::IMPOSTER_URI;
+        $this->httpClient->post($urlSetImposter, $postOptions);
     }
 
     /**
@@ -97,7 +102,7 @@ class ServiceVirtualization
     public function removeImposterInService(Imposter $imposter)
     {
         try {
-            $deleteUrl = $this->serviceHost . $this::IMPOSTER_URI . '/' . $imposter->getPort();
+            $deleteUrl = $this->serviceHost . self::IMPOSTER_URI . '/' . $imposter->getPort();
             return $this->httpClient->delete($deleteUrl);
         } catch (RequestException $exception) {
             $this->manageException($exception);
@@ -119,5 +124,13 @@ class ServiceVirtualization
                 ' Response: ' . $exception->getResponse()->getBody();
         }
         throw new RuntimeException($errorMessage);
+    }
+
+    /**
+     * @return ImposterFormatter
+     */
+    protected function getImposterFormatter()
+    {
+        return new ImposterFormatter();
     }
 }

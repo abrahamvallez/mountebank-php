@@ -27,10 +27,14 @@ class Stub
 
     /**
      * @param Response $response
+     *
+     * @return $this
      */
     public function addResponse(Response $response)
     {
         $this->responses[] = $response;
+
+        return $this;
     }
 
     /**
@@ -43,9 +47,13 @@ class Stub
 
     /**
      * @param Predicate $predicate
+     *
+     * @return $this
      */
     public function addPredicate(Predicate $predicate)
     {
         $this->predicates[] = $predicate;
+
+        return $this;
     }
 }

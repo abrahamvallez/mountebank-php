@@ -22,9 +22,13 @@ class Predicate
 
     /**
      * @param string $jsonDefinition
+     *
+     * @return $this
      */
     public function setJsonDefinition($jsonDefinition)
     {
         $this->jsonDefinition = $jsonDefinition;
+
+        return $this;
     }
 }

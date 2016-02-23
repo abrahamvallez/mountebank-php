@@ -25,7 +25,7 @@ class Imposter
     /**
      * @var array
      */
-    protected $stubs;
+    protected $stubs = [];
 
     /**
      * @return int

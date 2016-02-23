@@ -21,6 +21,13 @@ class ImposterFormatter
         ]);
     }
 
+    /**
+     * Get Json Stubs.
+     *
+     * @param Imposter $imposter
+     *
+     * @return array
+     */
     protected function getJsonStubs(Imposter $imposter)
     {
         $jsonStubs = [];
@@ -28,8 +35,17 @@ class ImposterFormatter
         foreach ($imposter->getStubs() as $stub) {
             $jsonStubs[] = $this->getJsonStub($stub);
         }
+
+        return $jsonStubs;
     }
 
+    /**
+     * Get Json Stub.
+     *
+     * @param Stub $stub
+     *
+     * @return array
+     */
     protected function getJsonStub(Stub $stub)
     {
         $jsonResponses = [];

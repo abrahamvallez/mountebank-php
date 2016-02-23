@@ -4,7 +4,8 @@ namespace MountebankPHP\Tests\Application;
 
 use MountebankPHP\Application\ServiceVirtualization;
 use MountebankPHP\Domain\Imposter;
-use MountebankPHP\Infrastructure\HttpClient;
+use MountebankPHP\Domain\ImposterFormatter;
+use MountebankPHP\Infrastructure\Http\HttpClient;
 use PHPUnit_Framework_MockObject_MockObject;
 use PHPUnit_Framework_TestCase;
 use RuntimeException;
@@ -28,7 +29,7 @@ class ServiceVirtualizationTest extends PHPUnit_Framework_TestCase
             'delete',
             'post'
         ];
-        $this->httpClientMock = $this->getMockBuilder('MountebankPHP\Infrastructure\HttpClient')
+        $this->httpClientMock = $this->getMockBuilder('MountebankPHP\Infrastructure\Http\HttpClient')
             ->disableOriginalConstructor()
             ->setMethods($httpClientMethods)
             ->getMock();
@@ -74,36 +75,27 @@ class ServiceVirtualizationTest extends PHPUnit_Framework_TestCase
     public function testSetImpostorInServiceDoPostCallWithCorrectOptions()
     {
         $url = 'http://servicehost.is.a.string';
-        $impostorPostData = [
-            'port' => 1234,
-            'protocol' => 'http',
-            'stubs' => [
-                [
-                    'responses' => 'response_mock_from_stub',
-                    'predicates' => 'predicate_mock_from_stub'
-                ]
-            ]
-        ];
+        $imposter = $this->getImporterMock();
+        $imposterData = json_encode([
+            'protocol' => Imposter::HTTP_PROTOCOL,
+            'port' => '4545',
+            'stubs' => []
+        ]);
         $correctOptions = [
             'headers' => [ServiceVirtualization::CONTENT_TYPE],
-            'body' => $impostorPostData
+            'body' => $imposterData
         ];
 
+        $imposterFormatterMock = $this->getImposterFormatterMocked($imposter, $imposterData);
         $this->httpClientMock->expects($this->once())
             ->method('post')
             ->with($url . ServiceVirtualization::IMPOSTER_URI, $correctOptions);
 
-        /** @var Imposter | PHPUnit_Framework_MockObject_MockObject $impostorMock */
-        $impostorMock = $this->getMockBuilder('MountebankPHP\Domain\Impostor')
-            ->setMethods(['getJsonDefinition'])
-            ->getMock();
-        $impostorMock->expects($this->once())
-            ->method('getJsonDefinition')
-            ->willReturn($impostorPostData);
 
-        $serviceVirtualization = new ServiceVirtualization($this->httpClientMock);
+        $serviceVirtualization = new ServiceVirtualizationMock($this->httpClientMock);
+        $serviceVirtualization->setImposterFormatter($imposterFormatterMock);
         $serviceVirtualization->setServiceHost($url);
-        $serviceVirtualization->setImposterInService($impostorMock);
+        $serviceVirtualization->setImposterInService($imposter);
     }
 
     /**
@@ -115,12 +107,11 @@ class ServiceVirtualizationTest extends PHPUnit_Framework_TestCase
             ->method('post')
             ->willThrowException(new RuntimeException);
 
-        /** @var Imposter | PHPUnit_Framework_MockObject_MockObject $impostorMock */
-        $impostorMock = $this->getMock('MountebankPHP\Domain\Impostor');
+        $imposter = new Imposter();
         $serviceVirtualization = new ServiceVirtualization($this->httpClientMock);
 
         $this->setExpectedException('RuntimeException');
-        $serviceVirtualization->setImposterInService($impostorMock);
+        $serviceVirtualization->setImposterInService($imposter);
     }
 
     /**
@@ -130,14 +121,7 @@ class ServiceVirtualizationTest extends PHPUnit_Framework_TestCase
     {
         $url = 'http://servicehost.is.a.string';
         $correctPortToDelete = 4545;
-
-        /** @var Imposter | PHPUnit_Framework_MockObject_MockObject $impostorMock */
-        $impostorMock = $this->getMockBuilder('MountebankPHP\Domain\Impostor')
-            ->setMethods(['getPort'])
-            ->getMock();
-        $impostorMock->expects($this->any())
-            ->method('getPort')
-            ->willReturn($correctPortToDelete);
+        $imposter = $this->getImporterMock();
 
         $this->httpClientMock->expects($this->once())
             ->method('delete')
@@ -145,7 +129,7 @@ class ServiceVirtualizationTest extends PHPUnit_Framework_TestCase
 
         $serviceVirtualization = new ServiceVirtualization($this->httpClientMock);
         $serviceVirtualization->setServiceHost($url);
-        $serviceVirtualization->removeImposterInService($impostorMock);
+        $serviceVirtualization->removeImposterInService($imposter);
     }
 
     /**
@@ -153,10 +137,7 @@ class ServiceVirtualizationTest extends PHPUnit_Framework_TestCase
      */
     public function testRemoveImpostorInServiceThrowExceptionIfDeleteCallFail()
     {
-        /** @var Imposter | PHPUnit_Framework_MockObject_MockObject$impostorMock */
-        $impostorMock = $this->getMockBuilder('MountebankPHP\Domain\Impostor')
-            ->setMethods(['getPort'])
-            ->getMock();
+        $imposter = $this->getImporterMock();
 
         $this->httpClientMock->expects($this->once())
             ->method('delete')
@@ -164,6 +145,40 @@ class ServiceVirtualizationTest extends PHPUnit_Framework_TestCase
 
         $serviceVirtualization = new ServiceVirtualization($this->httpClientMock);
         $this->setExpectedException('RuntimeException');
-        $serviceVirtualization->removeImposterInService($impostorMock);
+        $serviceVirtualization->removeImposterInService($imposter);
+    }
+
+    /**
+     * @return Imposter
+     */
+    protected function getImporterMock()
+    {
+        $imposter = new Imposter();
+        $imposter->setProtocol(Imposter::HTTP_PROTOCOL);
+        $imposter->setPort('4545');
+
+        return $imposter;
+    }
+
+    /**
+     * @param $imposter
+     * @param $imposterData
+     *
+     * @return ImposterFormatter|PHPUnit_Framework_MockObject_MockObject
+     */
+    protected function getImposterFormatterMocked($imposter, $imposterData)
+    {
+        /** @var ImposterFormatter | PHPUnit_Framework_MockObject_MockObject $imposterFormatterMock */
+        $imposterFormatterMock = $this->getMockBuilder('Mountebank\Domain\ImposterFormatter')
+            ->disableOriginalConstructor()
+            ->setMethods(['getJsonImposter'])
+            ->getMock();
+
+        $imposterFormatterMock->expects($this->once())
+            ->method('getJsonImposter')
+            ->with($imposter)
+            ->willReturn($imposterData);
+
+        return $imposterFormatterMock;
     }
 }
